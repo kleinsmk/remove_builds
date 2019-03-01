@@ -38,14 +38,43 @@
 
 $irule = Get-iRule -Name $iruleName
 
-#Backup existing irule
-Set-iRule -name ("$iruleName" + "_backup") -iRuleContent $irule.Definition
+#escape website string
+$dnsName = [regex]::escape($dnsname)
 
-#Split text into lines, return all lines without line matching DNS
-$modifiedRule = $irule.Definition -split "`n" | Select-String -Pattern "`"$dnsName`"\s{\s[a-zA-Z0-9_].*}" -NotMatch | Out-String
+#match  $modifiedRule = $irule.Definition -split "`n" | Select-String -Pattern "`"$dnsName`".*$"
+$match = $irule.Definition -split "`n" | Select-String -Pattern "`"$dnsName`".*$"
 
-Replace-irule -name $iruleName -irulecontent $modifiedRule
+#only if a match change irule
+if ( $match ){
 
+    #Split text into lines, return all lines without line matching DNS
+    $modifiedRule = $irule.Definition -split "`n" | Select-String -Pattern "`"$dnsName`".*$" -notMatch | Out-String
+    #Backup existing irule and only run replace if 
+    if ( Set-iRule -name ("$iruleName" + "_backup") -iRuleContent $irule.Definition ){
 
+        try{
+            Replace-irule -name $iruleName -irulecontent $modifiedRule | Out-Null
+            $match.matches
+            Write-Verbose "Update succeeded.  Removing backup...."
+            $remove = "$iruleName" + "_backup"
+            Remove-iRule -Name $remove -Confirm: $false
+            Write-Verbose "Removed backup $remove."
+          
+        }
 
+        catch {
+            
+           Write-Warning "There was an error updating the irule. Please check the syntax of your rule."
+           Write-Error $_.errordetails
+        }
+
+        
+    }
+
+    else {
+
+        Write-Warning "Please remove existing iRule backup."
+    }
 }
+
+}#end
