@@ -42,7 +42,7 @@ $irule = Get-iRule -Name $iruleName
 Set-iRule -name ("$iruleName" + "_backup") -iRuleContent $irule.Definition
 
 #Split text into lines, return all lines without line matching DNS
-$modifiedRule = $irule.Definition -split "`n" | Select-String -Pattern "`"$dnsName`"\s{\svirtual\s[a-zA-Z0-9_].*}" -NotMatch | Out-String
+$modifiedRule = $irule.Definition -split "`n" | Select-String -Pattern "`"$dnsName`"\s{\s[a-zA-Z0-9_].*}" -NotMatch | Out-String
 
 Replace-irule -name $iruleName -irulecontent $modifiedRule
 
